@@ -1,0 +1,17 @@
+package com.laitno.app;
+import android.app.*;import android.os.*;import android.webkit.*;import android.content.*;import android.net.Uri;import android.provider.Settings;import android.util.Base64;import java.util.*;import java.io.*;
+public class MainActivity extends Activity {
+ WebView w; static final int PICK=71; android.content.SharedPreferences p;
+ @Override public void onCreate(Bundle b){super.onCreate(b);p=getSharedPreferences("laitno",0); w=new WebView(this); WebSettings s=w.getSettings();s.setJavaScriptEnabled(true);s.setDomStorageEnabled(true);s.setDatabaseEnabled(true);s.setAllowFileAccess(true);s.setAllowContentAccess(true);s.setMediaPlaybackRequiresUserGesture(false);w.setWebChromeClient(new WebChromeClient());w.setWebViewClient(new WebViewClient());w.addJavascriptInterface(new Bridge(),"LAITNO_NATIVE");w.loadUrl("file:///android_asset/index.html");setContentView(w);}
+ class Bridge { @JavascriptInterface public String folder(){return p.getString("folder","");}
+  java.io.File local(String k){return new java.io.File(getExternalFilesDir("LAITNO"),k.replaceAll("[^A-Za-z0-9._ -]","_")+".audio");}
+  @JavascriptInterface public synchronized boolean putAudio(String k,String b64){try{byte[] x=Base64.decode(b64,Base64.DEFAULT);Uri u=Uri.parse(p.getString("folder",""));if(!p.getString("folder","").isEmpty()){String doc=android.provider.DocumentsContract.createDocument(getContentResolver(),u,"application/octet-stream",k+".audio");try(OutputStream o=getContentResolver().openOutputStream(Uri.parse(doc))){o.write(x);}}else{try(OutputStream o=new FileOutputStream(local(k))){o.write(x);}}return true;}catch(Exception e){return false;}}
+  @JavascriptInterface public synchronized String getAudio(String k){try{File f=local(k);if(!f.exists())return "";return Base64.encodeToString(java.nio.file.Files.readAllBytes(f.toPath()),Base64.NO_WRAP);}catch(Exception e){return "";}}
+  @JavascriptInterface public String keys(){File d=getExternalFilesDir("LAITNO");StringBuilder b=new StringBuilder();File[] fs=d==null?null:d.listFiles();if(fs!=null)for(File f:fs)if(f.isFile()&&f.getName().endsWith(".audio")){if(b.length()>0)b.append("\n");b.append(f.getName(),0,f.getName().length()-6);}return b.toString();}
+  @JavascriptInterface public boolean deleteAudio(String k){return local(k).delete();}
+  @JavascriptInterface public void chooseFolder(){runOnUiThread(()->{Intent i=new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE);i.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION|Intent.FLAG_GRANT_WRITE_URI_PERMISSION|Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION|Intent.FLAG_GRANT_PREFIX_URI_PERMISSION);startActivityForResult(i,PICK);});}
+  @JavascriptInterface public String appFolder(){java.io.File d=getExternalFilesDir("LAITNO");return d==null?"":d.getAbsolutePath();}
+ }
+ @Override protected void onActivityResult(int r,int c,Intent d){super.onActivityResult(r,c,d);if(r==PICK&&c==RESULT_OK&&d!=null){Uri u=d.getData();try{getContentResolver().takePersistableUriPermission(u,d.getFlags()&(Intent.FLAG_GRANT_READ_URI_PERMISSION|Intent.FLAG_GRANT_WRITE_URI_PERMISSION));}catch(Exception e){}p.edit().putString("folder",u.toString()).apply();if(w!=null)w.evaluateJavascript("window.dispatchEvent(new CustomEvent('laitno-folder',{detail:{uri:"+org.json.JSONObject.quote(u.toString())+"}}))",null);}}
+ @Override public void onBackPressed(){if(w.canGoBack())w.goBack();else super.onBackPressed();}
+}

@@ -1,0 +1,3 @@
+# Only needed for local release builds. GitHub Actions reads these from repository secrets.
+LAITNO_STORE_PASSWORD=replace-me
+LAITNO_KEY_PASSWORD=replace-me

@@ -1,0 +1,16 @@
+1) Create a private GitHub repository and upload this project.
+2) Add these repository secrets under Settings > Secrets and variables > Actions:
+   LAITNO_STORE_PASSWORD = the keystore store password
+   LAITNO_KEY_PASSWORD   = the key password
+   LAITNO_KEYSTORE_B64   = base64 text of LAITNO-release-keystore.jks
+
+Create LAITNO_KEYSTORE_B64 locally with:
+  base64 -w 0 LAITNO-release-keystore.jks > keystore.txt
+
+3) Push the project, then open Actions > Build signed LAITNO APK > Run workflow.
+4) Download LAITNO-release-apk from the completed workflow run.
+
+For Windows PowerShell:
+  [Convert]::ToBase64String([IO.File]::ReadAllBytes('.\\LAITNO-release-keystore.jks'))
+
+Never commit the .jks file, passwords, or keystore.txt to GitHub.

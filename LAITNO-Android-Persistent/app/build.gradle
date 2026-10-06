@@ -1,0 +1,6 @@
+plugins { id 'com.android.application' }
+android {
+ signingConfigs { release { storeFile file('../keystore/laitno-release.jks'); storePassword project.findProperty('LAITNO_STORE_PASSWORD') ?: ''; keyAlias 'laitno'; keyPassword project.findProperty('LAITNO_KEY_PASSWORD') ?: '' } }
+ namespace 'com.laitno.app'; compileSdk 34
+ defaultConfig { applicationId 'com.laitno.app'; minSdk 23; targetSdk 34; versionCode 17; versionName '13.9.17' }
+ buildTypes { release { signingConfig signingConfigs.release; minifyEnabled false } } }
