@@ -1,0 +1,47 @@
+name: Build signed LAITNO APK and AAB
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: android-actions/setup-android@v3
+
+      - name: Install Android tools
+        run: sdkmanager "platforms;android-34" "build-tools;34.0.0"
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.2"
+
+      - name: Restore keystore
+        env:
+          KEYSTORE_B64: ${{ secrets.LAITNO_KEYSTORE_B64 }}
+        run: |
+          mkdir -p keystore
+          echo "$KEYSTORE_B64" | base64 --decode > keystore/laitno-release.jks
+
+      - name: Build APK and AAB
+        env:
+          LAITNO_STORE_PASSWORD: ${{ secrets.LAITNO_STORE_PASSWORD }}
+          LAITNO_KEY_PASSWORD: ${{ secrets.LAITNO_KEY_PASSWORD }}
+        run: gradle --no-daemon :app:assembleRelease :app:bundleRelease
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: LAITNO-release-apk-and-aab
+          path: |
+            app/build/outputs/apk/release/app-release.apk
+            app/build/outputs/bundle/release/app-release.aab
